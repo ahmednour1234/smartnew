@@ -167,14 +167,14 @@ class CompanyResource extends Resource
     public static function table(Table $table): Table
     {
         $user = Auth::user();
-        $isAdmin = $user?->hasRole('admin') ?? false;
+        $canViewAny = $user?->hasPermission('view_any_companies') ?? false;
 
         return $table
-            ->modifyQueryUsing(function (Builder $query) use ($user, $isAdmin) {
+            ->modifyQueryUsing(function (Builder $query) use ($user, $canViewAny) {
                 $query->withoutGlobalScopes([
                     SoftDeletingScope::class,
                 ]);
-                if (!$isAdmin && $user) {
+                if (!$canViewAny && $user) {
                     $query->where('user_id', $user->id);
                 }
             })
@@ -212,7 +212,7 @@ class CompanyResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Assigned User')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: !$isAdmin),
+                    ->toggleable(isToggledHiddenByDefault: !$canViewAny),
                 Tables\Columns\TextColumn::make('next_followup_date')
                     ->label('Next Followup')
                     ->date('m/d/Y')
@@ -246,7 +246,7 @@ class CompanyResource extends Resource
                 Tables\Filters\SelectFilter::make('country_id')
                     ->label('Country')
                     ->relationship('country', 'name'),
-                $isAdmin ? Tables\Filters\SelectFilter::make('user_id')
+                $canViewAny ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
             ]))
