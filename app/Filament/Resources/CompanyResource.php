@@ -171,6 +171,9 @@ class CompanyResource extends Resource
 
         return $table
             ->modifyQueryUsing(function (Builder $query) use ($user, $isAdmin) {
+                $query->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
                 if (!$isAdmin && $user) {
                     $query->where('user_id', $user->id);
                 }
@@ -218,8 +221,13 @@ class CompanyResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters(array_filter([
+                Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'New' => 'New',
@@ -245,10 +253,20 @@ class CompanyResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
+                Tables\Actions\RestoreAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
+                Tables\Actions\ForceDeleteAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
+                    Tables\Actions\RestoreBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
+                    Tables\Actions\ForceDeleteBulkAction::make()
                         ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
                 ]),
             ]);
