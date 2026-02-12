@@ -219,7 +219,7 @@ class CompanyResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
+            ->filters(array_filter([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'New' => 'New',
@@ -241,7 +241,7 @@ class CompanyResource extends Resource
                 $isAdmin ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
-            ])
+            ]))
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
