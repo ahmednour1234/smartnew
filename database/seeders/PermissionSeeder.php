@@ -35,5 +35,13 @@ class PermissionSeeder extends Seeder
                 'description' => 'Permission to view dashboard',
             ]
         );
+
+        Permission::firstOrCreate(
+            ['slug' => 'view_booked_companies'],
+            [
+                'name' => 'View Booked Companies',
+                'description' => 'Permission to view who booked/assigned companies',
+            ]
+        );
     }
 }

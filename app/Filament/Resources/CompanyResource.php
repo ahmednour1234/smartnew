@@ -73,7 +73,7 @@ class CompanyResource extends Resource
     public static function form(Form $form): Form
     {
         $user = Auth::user();
-        $isAdmin = $user?->hasRole('admin') ?? false;
+        $canViewAssignedUser = $user?->hasPermission('view_booked_companies') ?? false;
 
         return $form
             ->schema([
@@ -145,13 +145,22 @@ class CompanyResource extends Resource
                             ->label('Next followup date')
                             ->native(false)
                             ->displayFormat('m/d/Y'),
-                        $isAdmin ? Forms\Components\Select::make('user_id')
-                            ->label('Assigned User')
-                            ->relationship('user', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->native(false) : Forms\Components\Hidden::make('user_id')
-                            ->default(fn () => Auth::id()),
+                        $canViewAssignedUser
+                            ? Forms\Components\Select::make('user_id')
+                                ->label('Assigned User')
+                                ->relationship('user', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->native(false)
+                            : Forms\Components\Group::make([
+                                Forms\Components\TextInput::make('assigned_user_display')
+                                    ->label('Assigned User')
+                                    ->default('Booked')
+                                    ->disabled()
+                                    ->dehydrated(false),
+                                Forms\Components\Hidden::make('user_id')
+                                    ->default(fn () => Auth::id()),
+                            ]),
                     ])
                     ->columns(2),
                 Forms\Components\Section::make()
@@ -168,6 +177,7 @@ class CompanyResource extends Resource
     {
         $user = Auth::user();
         $canViewAny = $user?->hasPermission('view_any_companies') ?? false;
+        $canViewBooked = $user?->hasPermission('view_booked_companies') ?? false;
 
         return $table
             ->modifyQueryUsing(function (Builder $query) use ($user, $canViewAny) {
@@ -212,7 +222,8 @@ class CompanyResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Assigned User')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: !$canViewAny),
+                    ->toggleable(isToggledHiddenByDefault: !$canViewBooked)
+                    ->visible(fn () => $canViewBooked),
                 Tables\Columns\TextColumn::make('next_followup_date')
                     ->label('Next Followup')
                     ->date('m/d/Y')
@@ -246,7 +257,7 @@ class CompanyResource extends Resource
                 Tables\Filters\SelectFilter::make('country_id')
                     ->label('Country')
                     ->relationship('country', 'name'),
-                $canViewAny ? Tables\Filters\SelectFilter::make('user_id')
+                $canViewBooked ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
             ]))
