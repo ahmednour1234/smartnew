@@ -207,7 +207,10 @@ class CompanyResource extends Resource
                 $query->withoutGlobalScopes([
                     SoftDeletingScope::class,
                 ]);
-                if (!$canViewAny && $canViewCompany && $user) {
+                if ($canViewAny) {
+                    return;
+                }
+                if ($canViewCompany && $user) {
                     $query->where('user_id', $user->id);
                 }
             })
