@@ -20,7 +20,7 @@ class MyCompanies extends ListRecords
 
     public static function canAccess(array $parameters = []): bool
     {
-        return Auth::user()?->hasPermission('view_company') ?? true;
+        return true;
     }
 
     protected function getHeaderActions(): array
