@@ -26,7 +26,29 @@ class CompanyResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user()?->hasPermission('view_any_companies') ?? false;
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        return $user->hasPermission('view_any_companies') || $user->hasPermission('view_company');
+    }
+
+    public static function canView($record): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasPermission('view_any_companies')) {
+            return true;
+        }
+
+        if ($user->hasPermission('view_company')) {
+            return $record->user_id === $user->id;
+        }
+
+        return false;
     }
 
     public static function canCreate(): bool
@@ -177,14 +199,15 @@ class CompanyResource extends Resource
     {
         $user = Auth::user();
         $canViewAny = $user?->hasPermission('view_any_companies') ?? false;
+        $canViewCompany = $user?->hasPermission('view_company') ?? false;
         $canViewBooked = $user?->hasPermission('view_booked_companies') ?? false;
 
         return $table
-            ->modifyQueryUsing(function (Builder $query) use ($user, $canViewAny) {
+            ->modifyQueryUsing(function (Builder $query) use ($user, $canViewAny, $canViewCompany) {
                 $query->withoutGlobalScopes([
                     SoftDeletingScope::class,
                 ]);
-                if (!$canViewAny && $user) {
+                if (!$canViewAny && $canViewCompany && $user) {
                     $query->where('user_id', $user->id);
                 }
             })
@@ -262,6 +285,8 @@ class CompanyResource extends Resource
                     ->relationship('user', 'name') : null,
             ]))
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn ($record) => static::canView($record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
                 Tables\Actions\DeleteAction::make()
@@ -295,6 +320,7 @@ class CompanyResource extends Resource
         return [
             'index' => Pages\ListCompanies::route('/'),
             'create' => Pages\CreateCompany::route('/create'),
+            'view' => Pages\ViewCompany::route('/{record}'),
             'edit' => Pages\EditCompany::route('/{record}/edit'),
         ];
     }
