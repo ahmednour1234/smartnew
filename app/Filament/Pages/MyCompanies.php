@@ -18,7 +18,7 @@ class MyCompanies extends ListRecords
 
     protected static ?int $navigationSort = 2;
 
-    public static function canAccess(): bool
+    public static function canAccess(array $parameters = []): bool
     {
         return Auth::user()?->hasPermission('view_company') ?? false;
     }
