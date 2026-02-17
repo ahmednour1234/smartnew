@@ -319,13 +319,55 @@ class CompanyResource extends Resource
                     ->visible(fn ($record) => static::canView($record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
+                Tables\Actions\Action::make('assign_to_me')
+                    ->label('Assign to me')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(function ($record) {
+                        $user = Auth::user();
+                        if (!$user) return false;
+                        if ($record->user_id !== null) return false;
+                        
+                        $userCount = Company::where('user_id', $user->id)->count();
+                        return $userCount < 60;
+                    })
+                    ->action(function ($record) {
+                        $user = Auth::user();
+                        if (!$user) return;
+                        
+                        $userCount = Company::where('user_id', $user->id)->count();
+                        if ($userCount >= 60) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Cannot assign')
+                                ->body('You have reached the maximum of 60 companies.')
+                                ->send();
+                            return;
+                        }
+                        
+                        $record->update(['user_id' => $user->id]);
+                        Notification::make()
+                            ->success()
+                            ->title('Company assigned')
+                            ->body('The company has been assigned to you.')
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('unassign')
                     ->label('Unassign')
                     ->icon('heroicon-o-x-circle')
                     ->color('warning')
                     ->requiresConfirmation()
                     ->visible(function ($record) use ($canViewBooked) {
-                        return $record->user_id !== null && ($canViewBooked || Auth::user()?->hasPermission('view_any_companies') ?? false);
+                        $user = Auth::user();
+                        if (!$user) return false;
+                        if ($record->user_id === null) return false;
+                        
+                        if ($canViewBooked || $user->hasPermission('view_any_companies')) {
+                            return true;
+                        }
+                        
+                        return $record->user_id === $user->id;
                     })
                     ->action(function ($record) {
                         $record->update(['user_id' => null]);
