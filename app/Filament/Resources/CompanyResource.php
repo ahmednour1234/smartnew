@@ -17,6 +17,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
 class CompanyResource extends Resource
 {
@@ -174,6 +175,23 @@ class CompanyResource extends Resource
                                 ->searchable()
                                 ->preload()
                                 ->native(false)
+                                ->placeholder('Unassigned')
+                                ->rules([
+                                    function ($get, $livewire) {
+                                        return function (string $attribute, $value, \Closure $fail) use ($get, $livewire) {
+                                            if ($value) {
+                                                $currentRecordId = $livewire->record->id ?? null;
+                                                $count = Company::where('user_id', $value)
+                                                    ->when($currentRecordId, fn ($query) => $query->where('id', '!=', $currentRecordId))
+                                                    ->count();
+                                                
+                                                if ($count >= 60) {
+                                                    $fail('This user already has the maximum of 60 companies assigned.');
+                                                }
+                                            }
+                                        };
+                                    },
+                                ])
                             : Forms\Components\Group::make([
                                 Forms\Components\TextInput::make('assigned_user_display')
                                     ->label('Assigned User')
@@ -286,12 +304,37 @@ class CompanyResource extends Resource
                 $canViewBooked ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
+                Tables\Filters\TernaryFilter::make('user_id')
+                    ->label('Assignment Status')
+                    ->placeholder('All companies')
+                    ->trueLabel('Assigned')
+                    ->falseLabel('Unassigned')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('user_id'),
+                        false: fn (Builder $query) => $query->whereNull('user_id'),
+                    ),
             ]))
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->visible(fn ($record) => static::canView($record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
+                Tables\Actions\Action::make('unassign')
+                    ->label('Unassign')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->visible(function ($record) use ($canViewBooked) {
+                        return $record->user_id !== null && ($canViewBooked || Auth::user()?->hasPermission('view_any_companies') ?? false);
+                    })
+                    ->action(function ($record) {
+                        $record->update(['user_id' => null]);
+                        Notification::make()
+                            ->success()
+                            ->title('Company unassigned')
+                            ->body('The company has been unassigned.')
+                            ->send();
+                    }),
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn ($record) => static::canDelete($record)),
                 Tables\Actions\RestoreAction::make()
