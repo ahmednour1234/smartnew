@@ -7,9 +7,9 @@ use App\Models\Event;
 use App\Models\Meeting;
 use App\Models\Package;
 use App\Models\User;
+use App\Filament\Resources\CompanyResource;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Filament\Resources\CompanyResource;
 
 class StatsOverviewWidget extends BaseWidget
 {
