@@ -40,8 +40,10 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 \App\Filament\Widgets\StatsOverviewWidget::class,
-                \App\Filament\Widgets\TopUsersWidget::class,
                 \App\Filament\Widgets\CompanyStatsWidget::class,
+                \App\Filament\Widgets\UsersListWidget::class,
+                \App\Filament\Widgets\CompaniesFollowUpWidget::class,
+                \App\Filament\Widgets\TopUsersWidget::class,
                 Widgets\AccountWidget::class,
             ])
             ->middleware([
