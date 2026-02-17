@@ -4,12 +4,6 @@
     </IfModule>
 RewriteEngine On
 
-# Redirect /public/* to public/index.php
-RewriteCond %{REQUEST_URI} ^/public/
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^public/(.*)$ public/index.php [L]
-
 # Fix Livewire endpoints when app is accessed via /public
 RewriteRule ^livewire/(.*)$ public/livewire/$1 [L,NC]
 
