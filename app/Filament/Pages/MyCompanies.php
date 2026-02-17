@@ -138,6 +138,7 @@ class MyCompanies extends Page implements HasTable
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->label('Add')
                     ->url(CompanyResource::getUrl('create')),
             ]);
     }
