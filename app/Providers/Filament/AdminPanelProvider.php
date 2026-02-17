@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->url('/public')
             ->brandName('Sales Of Smart')
             ->colors([
                 'primary' => Color::hex('#BD2429'),
