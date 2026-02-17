@@ -9,6 +9,7 @@ use App\Models\Package;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Resources\CompanyResource;
 
 class StatsOverviewWidget extends BaseWidget
 {
@@ -23,6 +24,11 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('Active companies')
                 ->descriptionIcon('heroicon-o-building-office')
                 ->color('primary'),
+            Stat::make('Follow Ups', Company::whereNotNull('next_followup_date')->count())
+                ->description('Companies with follow ups')
+                ->descriptionIcon('heroicon-o-clock')
+                ->color('warning')
+                ->url(CompanyResource::getUrl('index') . '?tableFilters[next_followup_date][value]=1'),
             Stat::make('Total Meetings', Meeting::count())
                 ->description('Scheduled meetings')
                 ->descriptionIcon('heroicon-o-calendar-days')

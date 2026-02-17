@@ -313,6 +313,15 @@ class CompanyResource extends Resource
                         true: fn (Builder $query) => $query->whereNotNull('user_id'),
                         false: fn (Builder $query) => $query->whereNull('user_id'),
                     ),
+                Tables\Filters\TernaryFilter::make('next_followup_date')
+                    ->label('Follow Up')
+                    ->placeholder('All companies')
+                    ->trueLabel('Has Follow Up')
+                    ->falseLabel('No Follow Up')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('next_followup_date'),
+                        false: fn (Builder $query) => $query->whereNull('next_followup_date'),
+                    ),
             ]))
             ->actions([
                 Tables\Actions\ViewAction::make()
