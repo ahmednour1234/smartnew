@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
 class MyCompanies extends Page implements HasTable
 {
@@ -114,6 +115,19 @@ class MyCompanies extends Page implements HasTable
                     ->url(fn ($record) => CompanyResource::getUrl('view', ['record' => $record])),
                 Tables\Actions\EditAction::make()
                     ->url(fn ($record) => CompanyResource::getUrl('edit', ['record' => $record])),
+                Tables\Actions\Action::make('unassign')
+                    ->label('Unassign')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->action(function ($record) {
+                        $record->update(['user_id' => null]);
+                        Notification::make()
+                            ->success()
+                            ->title('Company unassigned')
+                            ->body('The company has been unassigned from you.')
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
