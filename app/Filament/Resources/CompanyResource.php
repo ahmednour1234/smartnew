@@ -353,30 +353,6 @@ class CompanyResource extends Resource
                             ->body('The company has been assigned to you.')
                             ->send();
                     }),
-                Tables\Actions\Action::make('unassign')
-                    ->label('Unassign')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->visible(function ($record) use ($canViewBooked) {
-                        $user = Auth::user();
-                        if (!$user) return false;
-                        if ($record->user_id === null) return false;
-                        
-                        if ($canViewBooked || $user->hasPermission('view_any_companies')) {
-                            return true;
-                        }
-                        
-                        return $record->user_id === $user->id;
-                    })
-                    ->action(function ($record) {
-                        $record->update(['user_id' => null]);
-                        Notification::make()
-                            ->success()
-                            ->title('Company unassigned')
-                            ->body('The company has been unassigned.')
-                            ->send();
-                    }),
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn ($record) => static::canDelete($record)),
                 Tables\Actions\RestoreAction::make()
