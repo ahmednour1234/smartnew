@@ -25,7 +25,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('public/admin')
             ->login()
             ->brandName('Sales Of Smart')
             ->colors([
