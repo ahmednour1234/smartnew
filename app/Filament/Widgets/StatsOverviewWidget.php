@@ -28,7 +28,7 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('Companies with follow ups')
                 ->descriptionIcon('heroicon-o-clock')
                 ->color('warning')
-                ->url(CompanyResource::getUrl('index') . '?tableFilters[next_followup_date][value]=1'),
+                ->url('/public' . CompanyResource::getUrl('index') . '?tableFilters[next_followup_date][value]=1'),
             Stat::make('Total Meetings', Meeting::count())
                 ->description('Scheduled meetings')
                 ->descriptionIcon('heroicon-o-calendar-days')
