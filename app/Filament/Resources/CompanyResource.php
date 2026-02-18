@@ -54,7 +54,7 @@ class CompanyResource extends Resource
 
     public static function canCreate(): bool
     {
-        return Auth::user()?->hasPermission('create_companies') ?? false;
+       return false;
     }
 
     public static function canEdit($record): bool
@@ -184,7 +184,7 @@ class CompanyResource extends Resource
                                                 $count = Company::where('user_id', $value)
                                                     ->when($currentRecordId, fn ($query) => $query->where('id', '!=', $currentRecordId))
                                                     ->count();
-                                                
+
                                                 if ($count >= 60) {
                                                     $fail('This user already has the maximum of 60 companies assigned.');
                                                 }
@@ -337,14 +337,14 @@ class CompanyResource extends Resource
                         $user = Auth::user();
                         if (!$user) return false;
                         if ($record->user_id !== null) return false;
-                        
+
                         $userCount = Company::where('user_id', $user->id)->count();
                         return $userCount < 60;
                     })
                     ->action(function ($record) {
                         $user = Auth::user();
                         if (!$user) return;
-                        
+
                         $userCount = Company::where('user_id', $user->id)->count();
                         if ($userCount >= 60) {
                             Notification::make()
@@ -354,7 +354,7 @@ class CompanyResource extends Resource
                                 ->send();
                             return;
                         }
-                        
+
                         $record->update(['user_id' => $user->id]);
                         Notification::make()
                             ->success()
