@@ -42,7 +42,6 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\StatsOverviewWidget::class,
                 \App\Filament\Widgets\CompanyStatsWidget::class,
                 \App\Filament\Widgets\UsersListWidget::class,
-                \App\Filament\Widgets\CompaniesFollowUpWidget::class,
                 \App\Filament\Widgets\TopUsersWidget::class,
                 Widgets\AccountWidget::class,
             ])
