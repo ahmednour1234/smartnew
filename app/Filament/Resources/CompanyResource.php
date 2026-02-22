@@ -252,6 +252,12 @@ class CompanyResource extends Resource
                         'Lost' => 'danger',
                     })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('user_id')
+                    ->label('Booked')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => $state ? 'Booked' : 'Available')
+                    ->color(fn ($state): string => $state ? 'success' : 'gray')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('contact_person')
                     ->label('Contact person')
                     ->searchable(),
