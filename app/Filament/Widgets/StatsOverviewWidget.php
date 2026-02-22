@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Filament\Resources\FollowUpResource;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Str;
 
 class StatsOverviewWidget extends BaseWidget
 {
@@ -64,12 +63,6 @@ class StatsOverviewWidget extends BaseWidget
 
     protected function getFollowUpUrl(): string
     {
-        $url = FollowUpResource::getUrl('index');
-        if (Str::startsWith($url, 'http')) {
-            $parsed = parse_url($url);
-            $path = '/public' . ($parsed['path'] ?? '');
-            return ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '') . $path;
-        }
-        return '/public' . $url;
+        return FollowUpResource::getUrl('index');
     }
 }

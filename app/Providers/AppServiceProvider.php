@@ -12,6 +12,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
         // Override Livewire's update endpoint to always use /public prefix
         Livewire::setUpdateRoute(function ($handle) {
             return \Illuminate\Support\Facades\Route::post('/public/livewire/update', $handle)
@@ -23,13 +31,5 @@ class AppServiceProvider extends ServiceProvider
             return \Illuminate\Support\Facades\Route::get('/public/livewire/livewire.js', $handle)
                 ->middleware(['web']);
         });
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
     }
 }
