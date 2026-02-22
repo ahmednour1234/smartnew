@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Filament\Resources\FollowUpResource;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Str;
 
 class StatsOverviewWidget extends BaseWidget
 {
@@ -19,7 +20,9 @@ class StatsOverviewWidget extends BaseWidget
         $totalFollowUps = FollowUp::count();
         $missedFollowUps = FollowUp::where('status', 'missed')->count();
         $pendingFollowUps = FollowUp::where('status', 'pending')->count();
-        
+
+        $followUpBaseUrl = $this->getFollowUpUrl();
+
         return [
             Stat::make('Total Users', User::count())
                 ->description('Registered users')
@@ -33,17 +36,17 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('All follow ups')
                 ->descriptionIcon('heroicon-o-clock')
                 ->color('info')
-                ->url('/public' . FollowUpResource::getUrl('index')),
+                ->url($followUpBaseUrl),
             Stat::make('Missed Follow Ups', $missedFollowUps)
                 ->description('Expired follow ups')
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color('danger')
-                ->url('/public' . FollowUpResource::getUrl('index') . '?tableFilters[status][value]=missed'),
+                ->url($followUpBaseUrl . '?tableFilters[status][value]=missed'),
             Stat::make('Pending Follow Ups', $pendingFollowUps)
                 ->description('Upcoming follow ups')
                 ->descriptionIcon('heroicon-o-clock')
                 ->color('warning')
-                ->url('/public' . FollowUpResource::getUrl('index') . '?tableFilters[status][value]=pending'),
+                ->url($followUpBaseUrl . '?tableFilters[status][value]=pending'),
             Stat::make('Total Meetings', Meeting::count())
                 ->description('Scheduled meetings')
                 ->descriptionIcon('heroicon-o-calendar-days')
@@ -57,5 +60,16 @@ class StatsOverviewWidget extends BaseWidget
                 ->descriptionIcon('heroicon-o-cube')
                 ->color('success'),
         ];
+    }
+
+    protected function getFollowUpUrl(): string
+    {
+        $url = FollowUpResource::getUrl('index');
+        if (Str::startsWith($url, 'http')) {
+            $parsed = parse_url($url);
+            $path = '/public' . ($parsed['path'] ?? '');
+            return ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '') . $path;
+        }
+        return '/public' . $url;
     }
 }
