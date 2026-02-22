@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FollowUp extends Model
 {
+    protected $table = 'followups';
+    
     protected $fillable = [
         'company_id',
         'user_id',
