@@ -54,7 +54,11 @@ class CompanyResource extends Resource
 
     public static function canCreate(): bool
     {
-       return false;
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        return $user->hasPermission('create_companies') || $user->hasRole('admin');
     }
 
     public static function canEdit($record): bool
