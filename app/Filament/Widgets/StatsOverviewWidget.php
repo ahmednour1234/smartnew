@@ -33,17 +33,17 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('All follow ups')
                 ->descriptionIcon('heroicon-o-clock')
                 ->color('info')
-                ->url(FollowUpResource::getUrl('index')),
+                ->url('/public' . FollowUpResource::getUrl('index')),
             Stat::make('Missed Follow Ups', $missedFollowUps)
                 ->description('Expired follow ups')
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color('danger')
-                ->url(FollowUpResource::getUrl('index') . '?tableFilters[status][value]=missed'),
+                ->url('/public' . FollowUpResource::getUrl('index') . '?tableFilters[status][value]=missed'),
             Stat::make('Pending Follow Ups', $pendingFollowUps)
                 ->description('Upcoming follow ups')
                 ->descriptionIcon('heroicon-o-clock')
                 ->color('warning')
-                ->url(FollowUpResource::getUrl('index') . '?tableFilters[status][value]=pending'),
+                ->url('/public' . FollowUpResource::getUrl('index') . '?tableFilters[status][value]=pending'),
             Stat::make('Total Meetings', Meeting::count())
                 ->description('Scheduled meetings')
                 ->descriptionIcon('heroicon-o-calendar-days')
