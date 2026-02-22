@@ -55,4 +55,9 @@ class Company extends Model
     {
         return $this->hasMany(Meeting::class);
     }
+
+    public function followups(): HasMany
+    {
+        return $this->hasMany(FollowUp::class);
+    }
 }
