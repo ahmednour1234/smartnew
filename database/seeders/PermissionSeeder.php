@@ -10,7 +10,7 @@ class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $resources = ['users', 'roles', 'permissions', 'countries', 'events', 'packages', 'companies', 'meetings'];
+        $resources = ['users', 'roles', 'permissions', 'countries', 'events', 'packages', 'companies', 'meetings', 'followups'];
         $actions = ['view_any', 'view', 'create', 'update', 'delete'];
 
         foreach ($resources as $resource) {
