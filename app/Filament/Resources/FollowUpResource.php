@@ -26,6 +26,33 @@ class FollowUpResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canViewAny(): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        return $user->hasPermission('view_any_followups') || $user->hasPermission('view_followups');
+    }
+
+    public static function canView($record): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasPermission('view_any_followups')) {
+            return true;
+        }
+
+        if ($user->hasPermission('view_followups')) {
+            return $record->user_id === $user->id;
+        }
+
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -69,7 +96,18 @@ class FollowUpResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $user = Auth::user();
+        $canViewAny = $user?->hasPermission('view_any_followups') ?? false;
+
         return $table
+            ->modifyQueryUsing(function (Builder $query) use ($user, $canViewAny) {
+                if ($canViewAny) {
+                    return;
+                }
+                if ($user && $user->hasPermission('view_followups')) {
+                    $query->where('user_id', $user->id);
+                }
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('company.company_name')
                     ->label('Company Name')
