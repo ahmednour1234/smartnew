@@ -7,8 +7,8 @@ use Illuminate\Http\RedirectResponse;
 
 class Login extends BaseLogin
 {
-    protected function getRedirectUrl(): string
+    public function authenticated(): ?RedirectResponse
     {
-        return '/public/admin';
+        return redirect('/public/admin');
     }
 }
