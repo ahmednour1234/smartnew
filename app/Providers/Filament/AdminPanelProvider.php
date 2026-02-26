@@ -26,7 +26,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\Login::class)
             ->brandName('Sales Of Smart')
             ->colors([
                 'primary' => Color::hex('#BD2429'),
@@ -34,13 +34,14 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Pages\Dashboard::class,
+                \App\Filament\Pages\MyCompanies::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 \App\Filament\Widgets\StatsOverviewWidget::class,
-                \App\Filament\Widgets\TopUsersWidget::class,
                 \App\Filament\Widgets\CompanyStatsWidget::class,
+                \App\Filament\Widgets\UsersListWidget::class,
+                \App\Filament\Widgets\TopUsersWidget::class,
                 Widgets\AccountWidget::class,
             ])
             ->middleware([

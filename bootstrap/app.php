@@ -10,6 +10,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function ($schedule) {
+        $schedule->command('companies:check-expired-followups')->daily();
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })

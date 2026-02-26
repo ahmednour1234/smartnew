@@ -10,7 +10,7 @@ class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $resources = ['users', 'roles', 'permissions', 'countries', 'events', 'packages', 'companies', 'meetings'];
+        $resources = ['users', 'roles', 'permissions', 'countries', 'events', 'packages', 'companies', 'meetings', 'followups'];
         $actions = ['view_any', 'view', 'create', 'update', 'delete'];
 
         foreach ($resources as $resource) {
@@ -33,6 +33,14 @@ class PermissionSeeder extends Seeder
             [
                 'name' => 'View Dashboard',
                 'description' => 'Permission to view dashboard',
+            ]
+        );
+
+        Permission::firstOrCreate(
+            ['slug' => 'view_booked_companies'],
+            [
+                'name' => 'View Booked Companies',
+                'description' => 'Permission to view who booked/assigned companies',
             ]
         );
     }

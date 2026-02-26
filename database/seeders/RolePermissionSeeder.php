@@ -17,18 +17,19 @@ class RolePermissionSeeder extends Seeder
 
         $allPermissions = Permission::all();
 
-        if ($admin) {
+        if ($admin && $allPermissions->isNotEmpty()) {
             $admin->permissions()->sync($allPermissions->pluck('id'));
         }
 
-        if ($manager) {
+        if ($manager && $allPermissions->isNotEmpty()) {
             $managerPermissions = $allPermissions->filter(function ($permission) {
-                return !str_contains($permission->slug, 'delete');
+                return !str_contains($permission->slug, 'delete') && 
+                       !str_contains($permission->slug, 'permissions');
             });
             $manager->permissions()->sync($managerPermissions->pluck('id'));
         }
 
-        if ($sales) {
+        if ($sales && $allPermissions->isNotEmpty()) {
             $salesPermissions = $allPermissions->filter(function ($permission) {
                 return str_contains($permission->slug, 'view');
             });

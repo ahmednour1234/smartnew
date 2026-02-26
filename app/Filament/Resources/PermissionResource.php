@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class PermissionResource extends Resource
@@ -23,6 +24,26 @@ class PermissionResource extends Resource
     protected static ?string $navigationGroup = 'System Management';
 
     protected static ?int $navigationSort = 2;
+
+    public static function canViewAny(): bool
+    {
+        return Auth::user()?->hasPermission('view_any_permissions') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::user()?->hasPermission('create_permissions') ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::user()?->hasPermission('update_permissions') ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::user()?->hasPermission('delete_permissions') ?? false;
+    }
 
     public static function form(Form $form): Form
     {
@@ -69,11 +90,13 @@ class PermissionResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn ($record) => static::canEdit($record)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasPermission('delete_permissions') ?? false),
                 ]),
             ]);
     }

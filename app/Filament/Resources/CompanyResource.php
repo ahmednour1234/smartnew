@@ -17,6 +17,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
 class CompanyResource extends Resource
 {
@@ -26,12 +27,38 @@ class CompanyResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user()?->hasPermission('view_any_companies') ?? false;
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        return $user->hasPermission('view_any_companies') || $user->hasPermission('view_company');
+    }
+
+    public static function canView($record): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasPermission('view_any_companies')) {
+            return true;
+        }
+
+        if ($user->hasPermission('view_company')) {
+            return $record->user_id === $user->id;
+        }
+
+        return false;
     }
 
     public static function canCreate(): bool
     {
-        return Auth::user()?->hasPermission('create_companies') ?? false;
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        return $user->hasPermission('create_companies') || $user->hasRole('admin');
     }
 
     public static function canEdit($record): bool
@@ -73,7 +100,7 @@ class CompanyResource extends Resource
     public static function form(Form $form): Form
     {
         $user = Auth::user();
-        $isAdmin = $user?->hasRole('admin') ?? false;
+        $canViewAssignedUser = $user?->hasPermission('view_booked_companies') ?? false;
 
         return $form
             ->schema([
@@ -145,13 +172,39 @@ class CompanyResource extends Resource
                             ->label('Next followup date')
                             ->native(false)
                             ->displayFormat('m/d/Y'),
-                        $isAdmin ? Forms\Components\Select::make('user_id')
-                            ->label('Assigned User')
-                            ->relationship('user', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->native(false) : Forms\Components\Hidden::make('user_id')
-                            ->default(fn () => Auth::id()),
+                        $canViewAssignedUser
+                            ? Forms\Components\Select::make('user_id')
+                                ->label('Assigned User')
+                                ->relationship('user', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->native(false)
+                                ->placeholder('Unassigned')
+                                ->rules([
+                                    function ($get, $livewire) {
+                                        return function (string $attribute, $value, \Closure $fail) use ($get, $livewire) {
+                                            if ($value) {
+                                                $currentRecordId = $livewire->record->id ?? null;
+                                                $count = Company::where('user_id', $value)
+                                                    ->when($currentRecordId, fn ($query) => $query->where('id', '!=', $currentRecordId))
+                                                    ->count();
+
+                                                if ($count >= 60) {
+                                                    $fail('This user already has the maximum of 60 companies assigned.');
+                                                }
+                                            }
+                                        };
+                                    },
+                                ])
+                            : Forms\Components\Group::make([
+                                Forms\Components\TextInput::make('assigned_user_display')
+                                    ->label('Assigned User')
+                                    ->default('Booked')
+                                    ->disabled()
+                                    ->dehydrated(false),
+                                Forms\Components\Hidden::make('user_id')
+                                    ->default(fn () => Auth::id()),
+                            ]),
                     ])
                     ->columns(2),
                 Forms\Components\Section::make()
@@ -167,11 +220,19 @@ class CompanyResource extends Resource
     public static function table(Table $table): Table
     {
         $user = Auth::user();
-        $isAdmin = $user?->hasRole('admin') ?? false;
+        $canViewAny = $user?->hasPermission('view_any_companies') ?? false;
+        $canViewCompany = $user?->hasPermission('view_company') ?? false;
+        $canViewBooked = $user?->hasPermission('view_booked_companies') ?? false;
 
         return $table
-            ->modifyQueryUsing(function (Builder $query) use ($user, $isAdmin) {
-                if (!$isAdmin && $user) {
+            ->modifyQueryUsing(function (Builder $query) use ($user, $canViewAny, $canViewCompany) {
+                $query->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+                if ($canViewAny) {
+                    return;
+                }
+                if ($canViewCompany && $user) {
                     $query->where('user_id', $user->id);
                 }
             })
@@ -191,6 +252,12 @@ class CompanyResource extends Resource
                         'Lost' => 'danger',
                     })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('user_id')
+                    ->label('Booked')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => $state ? 'Booked' : 'Available')
+                    ->color(fn ($state): string => $state ? 'success' : 'gray')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('contact_person')
                     ->label('Contact person')
                     ->searchable(),
@@ -209,7 +276,8 @@ class CompanyResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Assigned User')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: !$isAdmin),
+                    ->toggleable(isToggledHiddenByDefault: !$canViewBooked)
+                    ->visible(fn () => $canViewBooked),
                 Tables\Columns\TextColumn::make('next_followup_date')
                     ->label('Next Followup')
                     ->date('m/d/Y')
@@ -218,8 +286,13 @@ class CompanyResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
+            ->filters(array_filter([
+                Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'New' => 'New',
@@ -238,17 +311,81 @@ class CompanyResource extends Resource
                 Tables\Filters\SelectFilter::make('country_id')
                     ->label('Country')
                     ->relationship('country', 'name'),
-                $isAdmin ? Tables\Filters\SelectFilter::make('user_id')
+                $canViewBooked ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
-            ])
+                Tables\Filters\TernaryFilter::make('user_id')
+                    ->label('Assignment Status')
+                    ->placeholder('All companies')
+                    ->trueLabel('Assigned')
+                    ->falseLabel('Unassigned')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('user_id'),
+                        false: fn (Builder $query) => $query->whereNull('user_id'),
+                    ),
+                Tables\Filters\TernaryFilter::make('next_followup_date')
+                    ->label('Follow Up')
+                    ->placeholder('All companies')
+                    ->trueLabel('Has Follow Up')
+                    ->falseLabel('No Follow Up')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('next_followup_date'),
+                        false: fn (Builder $query) => $query->whereNull('next_followup_date'),
+                    ),
+            ]))
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn ($record) => static::canView($record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
+                Tables\Actions\Action::make('assign_to_me')
+                    ->label('Assign to me')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(function ($record) {
+                        $user = Auth::user();
+                        if (!$user) return false;
+                        if ($record->user_id !== null) return false;
+
+                        $userCount = Company::where('user_id', $user->id)->count();
+                        return $userCount < 60;
+                    })
+                    ->action(function ($record) {
+                        $user = Auth::user();
+                        if (!$user) return;
+
+                        $userCount = Company::where('user_id', $user->id)->count();
+                        if ($userCount >= 60) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Cannot assign')
+                                ->body('You have reached the maximum of 60 companies.')
+                                ->send();
+                            return;
+                        }
+
+                        $record->update(['user_id' => $user->id]);
+                        Notification::make()
+                            ->success()
+                            ->title('Company assigned')
+                            ->body('The company has been assigned to you.')
+                            ->send();
+                    }),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
+                Tables\Actions\RestoreAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
+                Tables\Actions\ForceDeleteAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
+                    Tables\Actions\RestoreBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
+                    Tables\Actions\ForceDeleteBulkAction::make()
                         ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
                 ]),
             ]);
@@ -257,7 +394,7 @@ class CompanyResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\FollowUpsRelationManager::class,
         ];
     }
 
@@ -266,6 +403,7 @@ class CompanyResource extends Resource
         return [
             'index' => Pages\ListCompanies::route('/'),
             'create' => Pages\CreateCompany::route('/create'),
+            'view' => Pages\ViewCompany::route('/{record}'),
             'edit' => Pages\EditCompany::route('/{record}/edit'),
         ];
     }
