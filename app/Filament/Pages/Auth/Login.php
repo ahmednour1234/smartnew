@@ -9,6 +9,6 @@ class Login extends BaseLogin
 {
     public function authenticated(): ?RedirectResponse
     {
-        return redirect('/public');
+        return redirect('/');
     }
 }
