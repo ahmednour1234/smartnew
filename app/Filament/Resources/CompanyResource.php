@@ -14,8 +14,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 
 class CompanyResource extends Resource
@@ -184,11 +182,6 @@ class CompanyResource extends Resource
         $isAdmin = $user?->hasRole('admin') ?? false;
 
         return $table
-            ->modifyQueryUsing(function (Builder $query) use ($user, $isAdmin) {
-                if (!$isAdmin && $user) {
-                    $query->where('user_id', $user->id);
-                }
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('company_name')
                     ->label('Company name')
@@ -207,10 +200,22 @@ class CompanyResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('contact_person')
                     ->label('Contact person')
-                    ->searchable(),
+                    ->searchable()
+                    ->formatStateUsing(function ($state, $record) use ($user, $isAdmin) {
+                        if ($isAdmin || $record->user_id === $user?->id) {
+                            return $state;
+                        }
+                        return '—';
+                    }),
                 Tables\Columns\TextColumn::make('contact_email')
                     ->label('Contact email')
-                    ->searchable(),
+                    ->searchable()
+                    ->formatStateUsing(function ($state, $record) use ($user, $isAdmin) {
+                        if ($isAdmin || $record->user_id === $user?->id) {
+                            return $state;
+                        }
+                        return '—';
+                    }),
                 Tables\Columns\TextColumn::make('package.name')
                     ->label('Package')
                     ->sortable(),
@@ -233,7 +238,7 @@ class CompanyResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
+            ->filters(array_filter([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'New' => 'New',
@@ -255,7 +260,7 @@ class CompanyResource extends Resource
                 $isAdmin ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
-            ])
+            ]))
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->visible(fn ($record) => static::canView($record)),
