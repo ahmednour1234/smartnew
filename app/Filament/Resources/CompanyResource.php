@@ -52,6 +52,20 @@ class CompanyResource extends Resource
         return $record->user_id === $user->id;
     }
 
+    public static function canView($record): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $record->user_id === $user->id;
+    }
+
     public static function canDelete($record): bool
     {
         $user = Auth::user();
@@ -243,6 +257,8 @@ class CompanyResource extends Resource
                     ->relationship('user', 'name') : null,
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn ($record) => static::canView($record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
             ])
@@ -266,6 +282,7 @@ class CompanyResource extends Resource
         return [
             'index' => Pages\ListCompanies::route('/'),
             'create' => Pages\CreateCompany::route('/create'),
+            'view' => Pages\ViewCompany::route('/{record}'),
             'edit' => Pages\EditCompany::route('/{record}/edit'),
         ];
     }

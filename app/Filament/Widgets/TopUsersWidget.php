@@ -7,9 +7,15 @@ use App\Models\User;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Illuminate\Support\Facades\Auth;
 
 class TopUsersWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return Auth::user()?->hasRole('admin') ?? false;
+    }
+
     protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table

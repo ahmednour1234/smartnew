@@ -26,7 +26,7 @@ class UserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return Auth::user()?->hasPermission('view_any_users') ?? false;
+        return Auth::user()?->hasRole('admin') ?? false;
     }
 
     public static function canCreate(): bool
