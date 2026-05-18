@@ -196,6 +196,19 @@ class CompanyResource extends Resource
                         'Negotiation' => 'primary',
                         'Won' => 'success',
                         'Lost' => 'danger',
+                        default => 'success',
+                    })
+                    ->formatStateUsing(function ($state, $record) use ($user, $isAdmin) {
+                        if ($isAdmin) {
+                            return $state;
+                        }
+                        if ($state === 'Won') {
+                            return 'Booked';
+                        }
+                        if ($record->user_id === $user?->id) {
+                            return $state;
+                        }
+                        return 'Booked';
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('contact_person')
@@ -228,6 +241,12 @@ class CompanyResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Assigned User')
                     ->sortable()
+                    ->formatStateUsing(function ($state, $record) use ($user, $isAdmin) {
+                        if ($isAdmin || $record->user_id === $user?->id) {
+                            return $state;
+                        }
+                        return '—';
+                    })
                     ->toggleable(isToggledHiddenByDefault: !$isAdmin),
                 Tables\Columns\TextColumn::make('next_followup_date')
                     ->label('Next Followup')
