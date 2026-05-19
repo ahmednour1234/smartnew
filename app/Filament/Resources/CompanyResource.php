@@ -14,6 +14,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 
 class CompanyResource extends Resource
@@ -82,6 +84,25 @@ class CompanyResource extends Resource
         return $record->user_id === $user->id;
     }
 
+    public static function canForceDelete($record): bool
+    {
+        return Auth::user()?->hasRole('admin') ?? false;
+    }
+
+    public static function canRestore($record): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $record->user_id === $user->id;
+    }
+
     public static function form(Form $form): Form
     {
         $user = Auth::user();
@@ -107,6 +128,7 @@ class CompanyResource extends Resource
                         Forms\Components\TextInput::make('company_name')
                             ->label('Company name')
                             ->required()
+                            ->unique(table: Company::class, column: 'company_name', ignoreRecord: true)
                             ->maxLength(255),
                     ])
                     ->columns(2),
@@ -279,18 +301,37 @@ class CompanyResource extends Resource
                 $isAdmin ? Tables\Filters\SelectFilter::make('user_id')
                     ->label('Assigned User')
                     ->relationship('user', 'name') : null,
+                $isAdmin ? Tables\Filters\TrashedFilter::make() : null,
             ]))
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->visible(fn ($record) => static::canView($record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => static::canEdit($record)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
+                Tables\Actions\ForceDeleteAction::make()
+                    ->visible(fn ($record) => static::canForceDelete($record)),
+                Tables\Actions\RestoreAction::make()
+                    ->visible(fn ($record) => static::canRestore($record)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
+                    Tables\Actions\ForceDeleteBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasRole('admin') ?? false),
+                    Tables\Actions\RestoreBulkAction::make()
+                        ->visible(fn () => Auth::user()?->hasPermission('delete_companies') ?? false),
                 ]),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
             ]);
     }
 

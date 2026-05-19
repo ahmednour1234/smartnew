@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->enum('status', ['New', 'Contacted', 'Meeting', 'Negotiation', 'Won', 'Lost'])->default('New');
-            $table->string('company_name');
+            $table->string('company_name')->unique();
             $table->foreignId('package_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('event_id')->nullable()->constrained()->onDelete('set null');
             $table->string('contact_person')->nullable();
